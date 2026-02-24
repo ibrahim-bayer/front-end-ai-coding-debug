@@ -44,8 +44,11 @@ export function listCommand(): void {
     console.log(
       `             ${chalk.gray(incident.url)} — ${chalk.gray(time)}`,
     );
+    const errors = incident.timeline.filter((e) => e.category === "error").length;
+    const network = incident.timeline.filter((e) => e.category === "network").length;
+    const actions = incident.timeline.filter((e) => e.category === "action").length;
     console.log(
-      `             ${incident.errors.length} errors · ${incident.network.length} network · ${incident.actions.length} actions`,
+      `             ${incident.timeline.length} events · ${errors} errors · ${network} network · ${actions} actions`,
     );
     console.log();
   }

@@ -15,10 +15,7 @@ async function sendMessage<T>(message: { type: MessageType; payload?: unknown })
 async function refreshState(): Promise<void> {
   const state = await sendMessage<BackgroundState>({ type: MessageType.GET_STATE });
 
-  $("action-count").textContent = String(state.actionCount);
-  $("error-count").textContent = String(state.errorCount);
-  $("network-count").textContent = String(state.networkCount);
-  $("log-count").textContent = String(state.logCount);
+  $("timeline-count").textContent = String(state.timelineCount);
   $("incident-count").textContent = String(state.incidentCount);
 
   const statusEl = $("status");
@@ -46,6 +43,10 @@ async function loadIncidents(): Promise<void> {
   }
 
   for (const incident of incidents.reverse()) {
+    const actions = incident.timeline.filter((e) => e.category === "action").length;
+    const errors = incident.timeline.filter((e) => e.category === "error").length;
+    const network = incident.timeline.filter((e) => e.category === "network").length;
+
     const li = document.createElement("li");
     li.className = "incident-item";
     li.innerHTML = `
@@ -54,7 +55,7 @@ async function loadIncidents(): Promise<void> {
         <span class="incident-time">${new Date(incident.timestamp).toLocaleTimeString()}</span>
       </div>
       <div class="incident-meta">
-        ${incident.errors.length} errors · ${incident.network.length} network · ${incident.actions.length} actions
+        ${incident.timeline.length} events · ${errors} errors · ${network} network · ${actions} actions
       </div>
       <div class="incident-url">${incident.url}</div>
       <div class="incident-actions">
@@ -150,8 +151,6 @@ $("incident-list").addEventListener("click", async (e) => {
 // --- Init ---
 refreshState();
 loadIncidents();
-
-// Refresh every 2 seconds while popup is open
 setInterval(() => {
   refreshState();
 }, 2000);

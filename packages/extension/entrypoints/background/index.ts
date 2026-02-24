@@ -2,12 +2,9 @@ import { RollingBuffer } from "@/lib/buffer";
 import { MessageType } from "@/lib/messages";
 import { IncidentStatus } from "@/lib/types";
 import type { ExtensionMessage, BackgroundState } from "@/lib/messages";
-import type { Action, ErrorEntry, NetworkEntry, Incident } from "@/lib/types";
+import type { TimelineEvent, Incident } from "@/lib/types";
 
-const actionBuffer = new RollingBuffer<Action>(30);
-const errorBuffer = new RollingBuffer<ErrorEntry>(20);
-const networkBuffer = new RollingBuffer<NetworkEntry>(20);
-const logBuffer = new RollingBuffer<string>(50);
+const timeline = new RollingBuffer<TimelineEvent>(100);
 
 let recording = true;
 
@@ -33,12 +30,13 @@ export default defineBackground({
       (details) => {
         if (!recording) return;
         if (details.statusCode >= 400) {
-          networkBuffer.push({
-            method: details.method,
+          timeline.push({
+            category: "network",
+            type: details.method,
+            timestamp: new Date().toISOString(),
             url: details.url,
             status: details.statusCode,
             statusText: String(details.statusCode),
-            timestamp: new Date().toISOString(),
           });
         }
       },
@@ -48,12 +46,13 @@ export default defineBackground({
     browser.webRequest.onErrorOccurred.addListener(
       (details) => {
         if (!recording) return;
-        networkBuffer.push({
-          method: details.method,
+        timeline.push({
+          category: "network",
+          type: details.method,
+          timestamp: new Date().toISOString(),
           url: details.url,
           status: 0,
           statusText: details.error,
-          timestamp: new Date().toISOString(),
         });
       },
       { urls: ["<all_urls>"] },
@@ -63,33 +62,20 @@ export default defineBackground({
     browser.runtime.onMessage.addListener(
       (message: ExtensionMessage, _sender, sendResponse) => {
         switch (message.type) {
-          case MessageType.ACTION: {
-            if (recording) actionBuffer.push(message.payload);
-            break;
-          }
-          case MessageType.ERROR: {
-            if (recording) errorBuffer.push(message.payload);
-            break;
-          }
-          case MessageType.NETWORK: {
-            if (recording) {
-              const entry = { ...message.payload };
-              entry.response = truncateResponse(entry.response);
-              networkBuffer.push(entry);
+          case MessageType.TIMELINE_EVENT: {
+            if (!recording) break;
+            const event = { ...message.payload };
+            // Truncate network response bodies
+            if (event.category === "network") {
+              event.response = truncateResponse(event.response);
             }
-            break;
-          }
-          case MessageType.CONSOLE_LOG: {
-            if (recording) logBuffer.push(message.payload);
+            timeline.push(event);
             break;
           }
           case MessageType.GET_STATE: {
             const state: BackgroundState = {
               recording,
-              actionCount: actionBuffer.size,
-              errorCount: errorBuffer.size,
-              networkCount: networkBuffer.size,
-              logCount: logBuffer.size,
+              timelineCount: timeline.size,
               incidentCount: 0,
             };
             browser.storage.local.get("incidents").then((result) => {
@@ -97,13 +83,10 @@ export default defineBackground({
               state.incidentCount = incidents.length;
               sendResponse(state);
             });
-            return true; // async response
+            return true;
           }
           case MessageType.SET_RECORDING: {
             recording = message.payload;
-            if (!recording) {
-              // Pause — keep buffers
-            }
             break;
           }
           case MessageType.CREATE_INCIDENT: {
@@ -111,35 +94,26 @@ export default defineBackground({
               id: generateIncidentId(),
               url: "",
               timestamp: new Date().toISOString(),
-              actions: actionBuffer.snapshot(),
-              errors: errorBuffer.snapshot(),
-              network: networkBuffer.snapshot(),
-              console_logs: logBuffer.snapshot(),
+              timeline: timeline.snapshot(),
               notes: message.payload.notes,
               status: IncidentStatus.NEW,
             };
 
-            // Get current tab URL
             browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
               if (tabs[0]?.url) {
                 incident.url = tabs[0].url;
               }
 
-              // Save to storage
               browser.storage.local.get("incidents").then((result) => {
                 const incidents = (result.incidents ?? []) as Incident[];
                 incidents.push(incident);
                 browser.storage.local.set({ incidents }).then(() => {
-                  // Clear buffers after creating incident
-                  actionBuffer.clear();
-                  errorBuffer.clear();
-                  networkBuffer.clear();
-                  logBuffer.clear();
+                  timeline.clear();
                   sendResponse(incident);
                 });
               });
             });
-            return true; // async response
+            return true;
           }
           case MessageType.EXPORT_INCIDENT: {
             browser.storage.local.get("incidents").then((result) => {

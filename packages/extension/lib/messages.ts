@@ -1,10 +1,7 @@
-import type { Action, ErrorEntry, NetworkEntry } from "./types";
+import type { TimelineEvent } from "./types";
 
 export enum MessageType {
-  ACTION = "chrome2code:action",
-  ERROR = "chrome2code:error",
-  NETWORK = "chrome2code:network",
-  CONSOLE_LOG = "chrome2code:console_log",
+  TIMELINE_EVENT = "chrome2code:timeline_event",
   GET_STATE = "chrome2code:get_state",
   SET_RECORDING = "chrome2code:set_recording",
   CREATE_INCIDENT = "chrome2code:create_incident",
@@ -13,24 +10,9 @@ export enum MessageType {
   CLEAR_INCIDENTS = "chrome2code:clear_incidents",
 }
 
-export interface ActionMessage {
-  type: MessageType.ACTION;
-  payload: Action;
-}
-
-export interface ErrorMessage {
-  type: MessageType.ERROR;
-  payload: ErrorEntry;
-}
-
-export interface NetworkMessage {
-  type: MessageType.NETWORK;
-  payload: NetworkEntry;
-}
-
-export interface ConsoleLogMessage {
-  type: MessageType.CONSOLE_LOG;
-  payload: string;
+export interface TimelineEventMessage {
+  type: MessageType.TIMELINE_EVENT;
+  payload: TimelineEvent;
 }
 
 export interface GetStateMessage {
@@ -65,10 +47,7 @@ export interface ClearIncidentsMessage {
 }
 
 export type ExtensionMessage =
-  | ActionMessage
-  | ErrorMessage
-  | NetworkMessage
-  | ConsoleLogMessage
+  | TimelineEventMessage
   | GetStateMessage
   | SetRecordingMessage
   | CreateIncidentMessage
@@ -78,9 +57,9 @@ export type ExtensionMessage =
 
 export interface BackgroundState {
   recording: boolean;
-  actionCount: number;
-  errorCount: number;
-  networkCount: number;
-  logCount: number;
+  timelineCount: number;
   incidentCount: number;
 }
+
+// Prefix for MAIN world → ISOLATED world postMessage communication
+export const MAIN_WORLD_MESSAGE_SOURCE = "chrome2code-main";

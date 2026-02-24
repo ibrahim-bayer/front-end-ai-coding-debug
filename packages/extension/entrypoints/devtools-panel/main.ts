@@ -28,7 +28,7 @@ document.querySelectorAll(".tab").forEach((tab) => {
   });
 });
 
-// --- Render functions ---
+// --- Render incidents ---
 function renderIncidents(incidents: Incident[]): void {
   const list = $("#incident-list");
   if (incidents.length === 0) {
@@ -38,47 +38,41 @@ function renderIncidents(incidents: Incident[]): void {
 
   list.innerHTML = incidents
     .reverse()
-    .map(
-      (inc) => `
-    <div class="log-entry incident-entry">
-      <div class="entry-header">
-        <strong>${escapeHtml(inc.id)}</strong>
-        <span class="entry-time">${new Date(inc.timestamp).toLocaleString()}</span>
-      </div>
-      <div class="entry-meta">${escapeHtml(inc.url)}</div>
-      <div class="entry-stats">
-        ${inc.errors.length} errors · ${inc.network.length} network · ${inc.actions.length} actions · ${inc.console_logs.length} logs
-      </div>
-      ${inc.notes ? `<div class="entry-notes">${escapeHtml(inc.notes)}</div>` : ""}
-      <button class="btn btn-sm btn-export" data-id="${escapeHtml(inc.id)}">Export JSON</button>
-    </div>
-  `,
-    )
+    .map((inc) => {
+      const errors = inc.timeline.filter((e) => e.category === "error").length;
+      const network = inc.timeline.filter((e) => e.category === "network").length;
+      const actions = inc.timeline.filter((e) => e.category === "action").length;
+      const console_ = inc.timeline.filter((e) => e.category === "console").length;
+
+      return `
+        <div class="log-entry incident-entry">
+          <div class="entry-header">
+            <strong>${escapeHtml(inc.id)}</strong>
+            <span class="entry-time">${new Date(inc.timestamp).toLocaleString()}</span>
+          </div>
+          <div class="entry-meta">${escapeHtml(inc.url)}</div>
+          <div class="entry-stats">
+            ${inc.timeline.length} events · ${errors} errors · ${network} network · ${actions} actions · ${console_} console
+          </div>
+          ${inc.notes ? `<div class="entry-notes">${escapeHtml(inc.notes)}</div>` : ""}
+          <button class="btn btn-sm btn-export" data-id="${escapeHtml(inc.id)}">Export JSON</button>
+        </div>
+      `;
+    })
     .join("");
 }
 
 async function refreshAll(): Promise<void> {
   const state = await sendMessage<{
     recording: boolean;
-    actionCount: number;
-    errorCount: number;
-    networkCount: number;
-    logCount: number;
+    timelineCount: number;
   }>({ type: MessageType.GET_STATE });
 
-  // Update tab badges
-  document.querySelectorAll(".tab").forEach((tab) => {
-    const tabName = (tab as HTMLElement).dataset.tab;
-    const counts: Record<string, number> = {
-      errors: state.errorCount,
-      network: state.networkCount,
-      actions: state.actionCount,
-      logs: state.logCount,
-    };
-    if (tabName && counts[tabName] !== undefined) {
-      tab.textContent = `${tabName.charAt(0).toUpperCase() + tabName.slice(1)} (${counts[tabName]})`;
-    }
-  });
+  // Update timeline tab badge
+  const timelineTab = document.querySelector('[data-tab="timeline"]');
+  if (timelineTab) {
+    timelineTab.textContent = `Timeline (${state.timelineCount})`;
+  }
 
   // Load incidents
   const incidents = await sendMessage<Incident[]>({ type: MessageType.GET_INCIDENTS });

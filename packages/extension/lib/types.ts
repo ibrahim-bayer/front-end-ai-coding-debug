@@ -1,19 +1,14 @@
-export enum ActionType {
-  CLICK = "click",
-  INPUT = "input",
-  NAVIGATE = "navigate",
-  SCROLL = "scroll",
-  SUBMIT = "submit",
-}
-
 export enum IncidentStatus {
   NEW = "new",
   PROMPTED = "prompted",
   RESOLVED = "resolved",
 }
 
-export interface Action {
-  type: ActionType;
+// --- Timeline Events (single chronological array) ---
+
+export interface ActionEvent {
+  category: "action";
+  type: "click" | "input" | "navigate" | "scroll" | "submit";
   timestamp: string;
   target?: string;
   text?: string;
@@ -22,33 +17,43 @@ export interface Action {
   field?: string;
 }
 
-export interface ErrorEntry {
+export interface ErrorEvent {
+  category: "error";
+  type: string; // "TypeError", "ReferenceError", "ConsoleError", etc.
+  timestamp: string;
   message: string;
   stack?: string;
-  type: string;
-  timestamp: string;
 }
 
-export interface NetworkEntry {
-  method: string;
+export interface NetworkEvent {
+  category: "network";
+  type: string; // HTTP method: "GET", "POST", etc.
+  timestamp: string;
   url: string;
   status: number;
   statusText?: string;
   response?: string;
   requestHeaders?: Record<string, string>;
   responseHeaders?: Record<string, string>;
-  timestamp: string;
   duration?: number;
 }
+
+export interface ConsoleEvent {
+  category: "console";
+  type: "log" | "warn" | "error";
+  timestamp: string;
+  message: string;
+}
+
+export type TimelineEvent = ActionEvent | ErrorEvent | NetworkEvent | ConsoleEvent;
+
+// --- Incident ---
 
 export interface Incident {
   id: string;
   url: string;
   timestamp: string;
-  actions: Action[];
-  errors: ErrorEntry[];
-  network: NetworkEntry[];
-  console_logs: string[];
+  timeline: TimelineEvent[];
   notes?: string;
   status?: IncidentStatus;
 }

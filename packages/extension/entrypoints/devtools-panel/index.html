@@ -17,27 +17,14 @@
       </header>
 
       <div class="tabs">
-        <button class="tab active" data-tab="errors">Errors</button>
-        <button class="tab" data-tab="network">Network</button>
-        <button class="tab" data-tab="actions">Actions</button>
-        <button class="tab" data-tab="logs">Logs</button>
+        <button class="tab active" data-tab="timeline">Timeline</button>
         <button class="tab" data-tab="incidents">Incidents</button>
       </div>
 
-      <div id="tab-errors" class="tab-content active">
-        <div id="error-list" class="log-list"></div>
-      </div>
-
-      <div id="tab-network" class="tab-content">
-        <div id="network-list" class="log-list"></div>
-      </div>
-
-      <div id="tab-actions" class="tab-content">
-        <div id="action-list" class="log-list"></div>
-      </div>
-
-      <div id="tab-logs" class="tab-content">
-        <div id="log-list" class="log-list"></div>
+      <div id="tab-timeline" class="tab-content active">
+        <div id="timeline-list" class="log-list">
+          <div class="empty">Events will appear here as they are captured.</div>
+        </div>
       </div>
 
       <div id="tab-incidents" class="tab-content">
