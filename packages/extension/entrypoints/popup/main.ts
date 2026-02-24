@@ -15,8 +15,15 @@ async function sendMessage<T>(message: { type: MessageType; payload?: unknown })
 async function refreshState(): Promise<void> {
   const state = await sendMessage<BackgroundState>({ type: MessageType.GET_STATE });
 
-  $("timeline-count").textContent = String(state.timelineCount);
+  $("action-count").textContent = String(state.actionCount);
+  $("error-count").textContent = String(state.errorCount);
+  $("network-count").textContent = String(state.networkCount);
+  $("console-count").textContent = String(state.consoleCount);
   $("incident-count").textContent = String(state.incidentCount);
+
+  // Highlight non-zero errors and network in red
+  $("error-count").className = state.errorCount > 0 ? "stat-value stat-alert" : "stat-value";
+  $("network-count").className = state.networkCount > 0 ? "stat-value stat-alert" : "stat-value";
 
   const statusEl = $("status");
   const toggleBtn = $("toggle-btn");
@@ -90,6 +97,12 @@ async function copyIncidentToClipboard(incidentId: string): Promise<void> {
 // --- Event Listeners ---
 
 let isRecording = true;
+
+$("restart-btn").addEventListener("click", async () => {
+  await sendMessage({ type: MessageType.RESET_TIMELINE });
+  isRecording = true;
+  await refreshState();
+});
 
 $("toggle-btn").addEventListener("click", async () => {
   isRecording = !isRecording;

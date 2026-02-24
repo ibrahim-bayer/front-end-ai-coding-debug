@@ -15,16 +15,25 @@
 
       <div id="stats" class="stats">
         <div class="stat">
-          <span class="stat-value" id="timeline-count">0</span>
-          <span class="stat-label">Events</span>
+          <span class="stat-value" id="action-count">0</span>
+          <span class="stat-label">Actions</span>
         </div>
         <div class="stat">
-          <span class="stat-value" id="incident-count-stat">0</span>
-          <span class="stat-label">Incidents</span>
+          <span class="stat-value" id="error-count">0</span>
+          <span class="stat-label">Errors</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="network-count">0</span>
+          <span class="stat-label">Network</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="console-count">0</span>
+          <span class="stat-label">Console</span>
         </div>
       </div>
 
       <div class="controls">
+        <button id="restart-btn" class="btn btn-warning">Restart</button>
         <button id="toggle-btn" class="btn btn-primary">Pause</button>
         <button id="incident-btn" class="btn btn-danger">Create Incident</button>
       </div>

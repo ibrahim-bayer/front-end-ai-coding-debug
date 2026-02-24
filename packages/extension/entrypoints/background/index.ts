@@ -7,6 +7,7 @@ import type { TimelineEvent, Incident } from "@/lib/types";
 const timeline = new RollingBuffer<TimelineEvent>(100);
 
 let recording = true;
+let activeTabId: number | undefined;
 
 function generateIncidentId(): string {
   const now = new Date();
@@ -22,13 +23,26 @@ function truncateResponse(body: string | undefined, maxBytes: number = 1024): st
   return body.substring(0, maxBytes) + "... [truncated]";
 }
 
+function countByCategory(category: string): number {
+  return timeline.snapshot().filter((e) => e.category === category).length;
+}
+
 export default defineBackground({
   type: "module",
   main() {
-    // --- Network request capture ---
+    // --- Track active tab ---
+    browser.tabs.onActivated.addListener((info) => {
+      activeTabId = info.tabId;
+    });
+    browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+      if (tabs[0]?.id) activeTabId = tabs[0].id;
+    });
+
+    // --- Network request capture (active tab only) ---
     browser.webRequest.onCompleted.addListener(
       (details) => {
         if (!recording) return;
+        if (details.tabId !== activeTabId) return;
         if (details.statusCode >= 400) {
           timeline.push({
             category: "network",
@@ -46,6 +60,7 @@ export default defineBackground({
     browser.webRequest.onErrorOccurred.addListener(
       (details) => {
         if (!recording) return;
+        if (details.tabId !== activeTabId) return;
         timeline.push({
           category: "network",
           type: details.method,
@@ -65,7 +80,6 @@ export default defineBackground({
           case MessageType.TIMELINE_EVENT: {
             if (!recording) break;
             const event = { ...message.payload };
-            // Truncate network response bodies
             if (event.category === "network") {
               event.response = truncateResponse(event.response);
             }
@@ -76,6 +90,10 @@ export default defineBackground({
             const state: BackgroundState = {
               recording,
               timelineCount: timeline.size,
+              actionCount: countByCategory("action"),
+              errorCount: countByCategory("error"),
+              networkCount: countByCategory("network"),
+              consoleCount: countByCategory("console"),
               incidentCount: 0,
             };
             browser.storage.local.get("incidents").then((result) => {
@@ -87,6 +105,12 @@ export default defineBackground({
           }
           case MessageType.SET_RECORDING: {
             recording = message.payload;
+            break;
+          }
+          case MessageType.RESET_TIMELINE: {
+            timeline.clear();
+            recording = true;
+            sendResponse(true);
             break;
           }
           case MessageType.CREATE_INCIDENT: {

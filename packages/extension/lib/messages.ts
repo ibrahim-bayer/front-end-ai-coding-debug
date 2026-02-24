@@ -4,6 +4,7 @@ export enum MessageType {
   TIMELINE_EVENT = "chrome2code:timeline_event",
   GET_STATE = "chrome2code:get_state",
   SET_RECORDING = "chrome2code:set_recording",
+  RESET_TIMELINE = "chrome2code:reset_timeline",
   CREATE_INCIDENT = "chrome2code:create_incident",
   EXPORT_INCIDENT = "chrome2code:export_incident",
   GET_INCIDENTS = "chrome2code:get_incidents",
@@ -42,6 +43,10 @@ export interface GetIncidentsMessage {
   type: MessageType.GET_INCIDENTS;
 }
 
+export interface ResetTimelineMessage {
+  type: MessageType.RESET_TIMELINE;
+}
+
 export interface ClearIncidentsMessage {
   type: MessageType.CLEAR_INCIDENTS;
 }
@@ -50,6 +55,7 @@ export type ExtensionMessage =
   | TimelineEventMessage
   | GetStateMessage
   | SetRecordingMessage
+  | ResetTimelineMessage
   | CreateIncidentMessage
   | ExportIncidentMessage
   | GetIncidentsMessage
@@ -58,6 +64,10 @@ export type ExtensionMessage =
 export interface BackgroundState {
   recording: boolean;
   timelineCount: number;
+  actionCount: number;
+  errorCount: number;
+  networkCount: number;
+  consoleCount: number;
   incidentCount: number;
 }
 

@@ -54,6 +54,7 @@ h2 {
 .stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  /* 4 columns: actions, errors, network, console */
   gap: 8px;
   margin-bottom: 16px;
 }
@@ -71,6 +72,10 @@ h2 {
   font-size: 18px;
   font-weight: 700;
   color: #111;
+}
+
+.stat-value.stat-alert {
+  color: #dc2626;
 }
 
 .stat-label {
@@ -115,6 +120,17 @@ h2 {
 
 .btn-danger:hover {
   background: #b91c1c;
+}
+
+.btn-warning {
+  background: #f59e0b;
+  color: #fff;
+  flex: 0;
+  white-space: nowrap;
+}
+
+.btn-warning:hover {
+  background: #d97706;
 }
 
 .btn-secondary {
