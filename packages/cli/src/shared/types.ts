@@ -30,8 +30,9 @@ export interface NetworkEvent {
   url: string;
   status: number;
   statusText?: string;
-  response?: string;
+  requestBody?: string;
   requestHeaders?: Record<string, string>;
+  response?: string;
   responseHeaders?: Record<string, string>;
   duration?: number;
 }

@@ -11,8 +11,6 @@ export default defineConfig({
     permissions: [
       "storage",
       "activeTab",
-      "webRequest",
     ],
-    host_permissions: ["<all_urls>"],
   },
 });

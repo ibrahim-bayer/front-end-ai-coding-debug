@@ -7,7 +7,6 @@ import type { TimelineEvent, Incident } from "@/lib/types";
 const timeline = new RollingBuffer<TimelineEvent>(100);
 
 let recording = true;
-let activeTabId: number | undefined;
 
 function generateIncidentId(): string {
   const now = new Date();
@@ -30,48 +29,9 @@ function countByCategory(category: string): number {
 export default defineBackground({
   type: "module",
   main() {
-    // --- Track active tab ---
-    browser.tabs.onActivated.addListener((info) => {
-      activeTabId = info.tabId;
-    });
-    browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
-      if (tabs[0]?.id) activeTabId = tabs[0].id;
-    });
-
-    // --- Network request capture (active tab only) ---
-    browser.webRequest.onCompleted.addListener(
-      (details) => {
-        if (!recording) return;
-        if (details.tabId !== activeTabId) return;
-        if (details.statusCode >= 400) {
-          timeline.push({
-            category: "network",
-            type: details.method,
-            timestamp: new Date().toISOString(),
-            url: details.url,
-            status: details.statusCode,
-            statusText: String(details.statusCode),
-          });
-        }
-      },
-      { urls: ["<all_urls>"] },
-    );
-
-    browser.webRequest.onErrorOccurred.addListener(
-      (details) => {
-        if (!recording) return;
-        if (details.tabId !== activeTabId) return;
-        timeline.push({
-          category: "network",
-          type: details.method,
-          timestamp: new Date().toISOString(),
-          url: details.url,
-          status: 0,
-          statusText: details.error,
-        });
-      },
-      { urls: ["<all_urls>"] },
-    );
+    // Network capture is handled by the MAIN world content script
+    // (intercepts fetch/XHR with full request/response data).
+    // Background only acts as message hub and storage.
 
     // --- Message hub ---
     browser.runtime.onMessage.addListener(

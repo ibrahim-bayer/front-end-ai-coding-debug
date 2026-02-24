@@ -53,8 +53,11 @@ function formatNetwork(event: NetworkEvent, index: number, time: string): string
   if (event.duration) {
     result += ` (${event.duration}ms)`;
   }
+  if (event.requestBody) {
+    result += `\n   Request body:\n   \`\`\`\n   ${event.requestBody}\n   \`\`\``;
+  }
   if (event.response) {
-    result += `\n   Response: \`${event.response}\``;
+    result += `\n   Response body:\n   \`\`\`\n   ${event.response}\n   \`\`\``;
   }
   return result;
 }
