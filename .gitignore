@@ -1,5 +1,10 @@
 node_modules/
 .output/
-dist/
 *.tsbuildinfo
 .wxt/
+
+# CLI build output
+packages/cli/dist/
+
+# Extension build output
+packages/extension/dist/
