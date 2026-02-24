@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chrome2Code</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>Chrome2Code</h1>
+        <div id="status" class="status recording">Recording</div>
+      </header>
+
+      <div id="stats" class="stats">
+        <div class="stat">
+          <span class="stat-value" id="action-count">0</span>
+          <span class="stat-label">Actions</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="error-count">0</span>
+          <span class="stat-label">Errors</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="network-count">0</span>
+          <span class="stat-label">Network</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="log-count">0</span>
+          <span class="stat-label">Logs</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="toggle-btn" class="btn btn-primary">Pause</button>
+        <button id="incident-btn" class="btn btn-danger">Create Incident</button>
+      </div>
+
+      <div id="notes-section" class="notes-section hidden">
+        <textarea id="notes" placeholder="Optional: describe what happened..."></textarea>
+        <div class="notes-controls">
+          <button id="confirm-incident" class="btn btn-danger">Confirm</button>
+          <button id="cancel-incident" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+
+      <div id="incidents-section" class="incidents-section">
+        <h2>Incidents <span id="incident-count" class="badge">0</span></h2>
+        <ul id="incident-list"></ul>
+      </div>
+
+      <div class="footer">
+        <button id="clear-btn" class="btn btn-link">Clear All Incidents</button>
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

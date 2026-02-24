@@ -1,0 +1,168 @@
+import { RollingBuffer } from "@/lib/buffer";
+import { MessageType } from "@/lib/messages";
+import { IncidentStatus } from "@/lib/types";
+import type { ExtensionMessage, BackgroundState } from "@/lib/messages";
+import type { Action, ErrorEntry, NetworkEntry, Incident } from "@/lib/types";
+
+const actionBuffer = new RollingBuffer<Action>(30);
+const errorBuffer = new RollingBuffer<ErrorEntry>(20);
+const networkBuffer = new RollingBuffer<NetworkEntry>(20);
+const logBuffer = new RollingBuffer<string>(50);
+
+let recording = true;
+
+function generateIncidentId(): string {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+  const time = now.toTimeString().slice(0, 5).replace(":", "");
+  const rand = Math.random().toString(36).substring(2, 6);
+  return `incident-${date}-${time}-${rand}`;
+}
+
+function truncateResponse(body: string | undefined, maxBytes: number = 1024): string | undefined {
+  if (!body) return undefined;
+  if (body.length <= maxBytes) return body;
+  return body.substring(0, maxBytes) + "... [truncated]";
+}
+
+export default defineBackground({
+  type: "module",
+  main() {
+    // --- Network request capture ---
+    browser.webRequest.onCompleted.addListener(
+      (details) => {
+        if (!recording) return;
+        if (details.statusCode >= 400) {
+          networkBuffer.push({
+            method: details.method,
+            url: details.url,
+            status: details.statusCode,
+            statusText: String(details.statusCode),
+            timestamp: new Date().toISOString(),
+          });
+        }
+      },
+      { urls: ["<all_urls>"] },
+    );
+
+    browser.webRequest.onErrorOccurred.addListener(
+      (details) => {
+        if (!recording) return;
+        networkBuffer.push({
+          method: details.method,
+          url: details.url,
+          status: 0,
+          statusText: details.error,
+          timestamp: new Date().toISOString(),
+        });
+      },
+      { urls: ["<all_urls>"] },
+    );
+
+    // --- Message hub ---
+    browser.runtime.onMessage.addListener(
+      (message: ExtensionMessage, _sender, sendResponse) => {
+        switch (message.type) {
+          case MessageType.ACTION: {
+            if (recording) actionBuffer.push(message.payload);
+            break;
+          }
+          case MessageType.ERROR: {
+            if (recording) errorBuffer.push(message.payload);
+            break;
+          }
+          case MessageType.NETWORK: {
+            if (recording) {
+              const entry = { ...message.payload };
+              entry.response = truncateResponse(entry.response);
+              networkBuffer.push(entry);
+            }
+            break;
+          }
+          case MessageType.CONSOLE_LOG: {
+            if (recording) logBuffer.push(message.payload);
+            break;
+          }
+          case MessageType.GET_STATE: {
+            const state: BackgroundState = {
+              recording,
+              actionCount: actionBuffer.size,
+              errorCount: errorBuffer.size,
+              networkCount: networkBuffer.size,
+              logCount: logBuffer.size,
+              incidentCount: 0,
+            };
+            browser.storage.local.get("incidents").then((result) => {
+              const incidents = (result.incidents ?? []) as Incident[];
+              state.incidentCount = incidents.length;
+              sendResponse(state);
+            });
+            return true; // async response
+          }
+          case MessageType.SET_RECORDING: {
+            recording = message.payload;
+            if (!recording) {
+              // Pause — keep buffers
+            }
+            break;
+          }
+          case MessageType.CREATE_INCIDENT: {
+            const incident: Incident = {
+              id: generateIncidentId(),
+              url: "",
+              timestamp: new Date().toISOString(),
+              actions: actionBuffer.snapshot(),
+              errors: errorBuffer.snapshot(),
+              network: networkBuffer.snapshot(),
+              console_logs: logBuffer.snapshot(),
+              notes: message.payload.notes,
+              status: IncidentStatus.NEW,
+            };
+
+            // Get current tab URL
+            browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+              if (tabs[0]?.url) {
+                incident.url = tabs[0].url;
+              }
+
+              // Save to storage
+              browser.storage.local.get("incidents").then((result) => {
+                const incidents = (result.incidents ?? []) as Incident[];
+                incidents.push(incident);
+                browser.storage.local.set({ incidents }).then(() => {
+                  // Clear buffers after creating incident
+                  actionBuffer.clear();
+                  errorBuffer.clear();
+                  networkBuffer.clear();
+                  logBuffer.clear();
+                  sendResponse(incident);
+                });
+              });
+            });
+            return true; // async response
+          }
+          case MessageType.EXPORT_INCIDENT: {
+            browser.storage.local.get("incidents").then((result) => {
+              const incidents = (result.incidents ?? []) as Incident[];
+              const incident = incidents.find((i) => i.id === message.payload.incidentId);
+              sendResponse(incident ?? null);
+            });
+            return true;
+          }
+          case MessageType.GET_INCIDENTS: {
+            browser.storage.local.get("incidents").then((result) => {
+              sendResponse((result.incidents ?? []) as Incident[]);
+            });
+            return true;
+          }
+          case MessageType.CLEAR_INCIDENTS: {
+            browser.storage.local.set({ incidents: [] }).then(() => {
+              sendResponse(true);
+            });
+            return true;
+          }
+        }
+      },
+    );
+  },
+});

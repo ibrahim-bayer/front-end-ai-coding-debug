@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chrome2Code Panel</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="panel">
+      <header>
+        <h1>Chrome2Code — Live Monitor</h1>
+        <div class="header-actions">
+          <button id="refresh-btn" class="btn">Refresh</button>
+          <button id="create-btn" class="btn btn-danger">Snapshot Incident</button>
+        </div>
+      </header>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="errors">Errors</button>
+        <button class="tab" data-tab="network">Network</button>
+        <button class="tab" data-tab="actions">Actions</button>
+        <button class="tab" data-tab="logs">Logs</button>
+        <button class="tab" data-tab="incidents">Incidents</button>
+      </div>
+
+      <div id="tab-errors" class="tab-content active">
+        <div id="error-list" class="log-list"></div>
+      </div>
+
+      <div id="tab-network" class="tab-content">
+        <div id="network-list" class="log-list"></div>
+      </div>
+
+      <div id="tab-actions" class="tab-content">
+        <div id="action-list" class="log-list"></div>
+      </div>
+
+      <div id="tab-logs" class="tab-content">
+        <div id="log-list" class="log-list"></div>
+      </div>
+
+      <div id="tab-incidents" class="tab-content">
+        <div id="incident-list" class="log-list"></div>
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
