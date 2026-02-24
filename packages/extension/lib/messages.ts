@@ -71,5 +71,5 @@ export interface BackgroundState {
   incidentCount: number;
 }
 
-// Prefix for MAIN world → ISOLATED world postMessage communication
-export const MAIN_WORLD_MESSAGE_SOURCE = "chrome2code-main";
+// CustomEvent name for MAIN world → ISOLATED world communication
+export const MAIN_WORLD_EVENT_NAME = "chrome2code-event";

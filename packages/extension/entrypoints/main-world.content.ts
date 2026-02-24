@@ -1,16 +1,22 @@
 // This script runs in the MAIN world (same JS context as the page).
 // It can intercept console calls and catch runtime errors.
-// It communicates with the ISOLATED content script via window.postMessage.
+// It communicates with the ISOLATED content script via CustomEvent on document.
 
 export default defineContentScript({
   matches: ["<all_urls>"],
   runAt: "document_start",
   world: "MAIN",
   main() {
-    const SOURCE = "chrome2code-main";
+    const EVENT_NAME = "chrome2code-event";
 
     function post(event: Record<string, unknown>): void {
-      window.postMessage({ source: SOURCE, event }, "*");
+      try {
+        document.dispatchEvent(
+          new CustomEvent(EVENT_NAME, { detail: JSON.stringify(event) }),
+        );
+      } catch {
+        // Fail silently
+      }
     }
 
     // --- Error capture ---
@@ -62,14 +68,13 @@ export default defineContentScript({
 
     console.error = function (...args: unknown[]) {
       const message = args.map(String).join(" ");
-      // Log as console event
       post({
         category: "console",
         type: "error",
         timestamp: new Date().toISOString(),
         message,
       });
-      // Also capture as error (React hydration warnings, framework errors, etc.)
+      // Also capture as error entry (React warnings, framework errors, etc.)
       post({
         category: "error",
         type: "ConsoleError",

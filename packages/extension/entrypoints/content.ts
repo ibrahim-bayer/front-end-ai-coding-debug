@@ -1,4 +1,4 @@
-import { MessageType, MAIN_WORLD_MESSAGE_SOURCE } from "@/lib/messages";
+import { MessageType } from "@/lib/messages";
 import { getSelector, getElementText, getFieldName } from "@/lib/selectors";
 import type { TimelineEvent } from "@/lib/types";
 
@@ -19,10 +19,13 @@ export default defineContentScript({
       }
     }
 
-    // --- Listen for events from MAIN world content script ---
-    window.addEventListener("message", (e) => {
-      if (e.data?.source === MAIN_WORLD_MESSAGE_SOURCE && e.data?.event) {
-        send(e.data.event as TimelineEvent);
+    // --- Listen for events from MAIN world content script via CustomEvent ---
+    document.addEventListener("chrome2code-event", (e) => {
+      try {
+        const event = JSON.parse((e as CustomEvent).detail as string) as TimelineEvent;
+        send(event);
+      } catch {
+        // Invalid event data — skip
       }
     });
 
