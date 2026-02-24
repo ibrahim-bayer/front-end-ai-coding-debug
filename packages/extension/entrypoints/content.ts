@@ -153,7 +153,14 @@ export default defineContentScript({
     };
 
     console.error = function (...args: unknown[]) {
-      sendConsoleLog(`[ERROR] ${args.map(String).join(" ")}`);
+      const message = args.map(String).join(" ");
+      sendConsoleLog(`[ERROR] ${message}`);
+      // Also capture console.error as an error entry (catches React hydration warnings,
+      // framework errors, and other issues logged via console.error but not thrown)
+      sendError({
+        message,
+        type: "ConsoleError",
+      });
       originalError(...args);
     };
   },
